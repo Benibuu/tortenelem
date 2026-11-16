@@ -1,0 +1,1747 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>II. világháború – Történelmi Küzdelem</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            font-family: system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background-color: #0b0f17;
+            color: #e6edf3;
+            overflow-x: hidden;
+        }
+
+        /* Egyedi görgetősáv az idővonalhoz */
+        .timeline-scroll::-webkit-scrollbar {
+            height: 8px;
+        }
+        .timeline-scroll::-webkit-scrollbar-track {
+            background: #161b22;
+            border-radius: 4px;
+        }
+        .timeline-scroll::-webkit-scrollbar-thumb {
+            background: #30363d;
+            border-radius: 4px;
+        }
+        .timeline-scroll::-webkit-scrollbar-thumb:hover {
+            background: #d4af37;
+        }
+
+        /* Pulzáló jelölő a térképen */
+        @keyframes pulseRing {
+            0% {
+                transform: scale(0.6);
+                opacity: 0.9;
+            }
+            100% {
+                transform: scale(2.4);
+                opacity: 0;
+            }
+        }
+        .map-pulse {
+            transform-box: fill-box;
+            transform-origin: center;
+            animation: pulseRing 1.8s cubic-bezier(0.215, 0.61, 0.355, 1) infinite;
+        }
+
+        /* Kocka rázás animáció */
+        @keyframes diceShake {
+            0%, 100% { transform: rotate(0deg) scale(1); }
+            25% { transform: rotate(-15deg) scale(1.1); }
+            50% { transform: rotate(15deg) scale(1.1); }
+            75% { transform: rotate(-10deg) scale(1.05); }
+        }
+        .dice-rolling {
+            animation: diceShake 0.4s ease-in-out infinite;
+        }
+
+        /* Kártya megjelenés */
+        @keyframes modalPop {
+            0% { opacity: 0; transform: scale(0.94) translateY(10px); }
+            100% { opacity: 1; transform: scale(1) translateY(0); }
+        }
+        .modal-animate {
+            animation: modalPop 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col bg-[#0b0f17] text-slate-100">
+
+    <!-- FELSŐ FEJLÉC -->
+    <header class="bg-[#131924] border-b border-slate-800 px-4 py-3 flex flex-wrap items-center justify-between gap-3 shadow-lg relative z-30">
+        <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-lg bg-gradient-to-br from-amber-500 to-amber-700 flex items-center justify-center shadow-md border border-amber-400/40 shrink-0">
+                <svg class="w-6 h-6 text-slate-950" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M12 2L14.8 8.5L22 9.2L16.5 14L18.2 21L12 17.3L5.8 21L7.5 14L2 9.2L9.2 8.5L12 2Z"/>
+                </svg>
+            </div>
+            <div>
+                <h1 class="text-base sm:text-xl font-extrabold tracking-tight text-amber-400">II. VILÁGHÁBORÚ – TÖRTÉNELMI KÜZDELEM</h1>
+                <p class="text-xs text-slate-400 hidden sm:block">Oktatási célú történelmi társasjáték (1939–1945)</p>
+            </div>
+        </div>
+
+        <div class="flex items-center gap-2 sm:gap-3">
+            <span id="round-indicator" class="hidden bg-slate-800/90 border border-slate-700 text-slate-300 text-xs sm:text-sm font-semibold px-3 py-1.5 rounded-lg">
+                1. Kör
+            </span>
+            <button type="button" id="sound-toggle-btn" onclick="toggleSound()" class="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 text-xs sm:text-sm font-medium flex items-center gap-1.5 transition cursor-pointer" title="Hang kapcsolása">
+                <span id="sound-icon">🔊</span>
+                <span id="sound-label" class="hidden md:inline">Hang: Be</span>
+            </button>
+            <button type="button" id="restart-header-btn" onclick="openRestartConfirm()" class="hidden px-3 py-1.5 rounded-lg bg-red-950/90 hover:bg-red-900 border border-red-800 text-red-200 text-xs sm:text-sm font-semibold transition cursor-pointer">
+                Új játék
+            </button>
+        </div>
+    </header>
+
+    <!-- 1. KEZDŐKÉPERNYŐ (JÁTÉKOS BEÁLLÍTÁSOK) -->
+    <main id="setup-screen" class="flex-1 flex items-center justify-center p-4 relative z-20 bg-gradient-to-b from-slate-900 via-[#0b0f17] to-black">
+        <div class="max-w-xl w-full bg-[#151c28] border border-slate-700 rounded-2xl p-6 sm:p-8 shadow-2xl relative z-20">
+            <div class="text-center mb-6">
+                <span class="inline-block px-3 py-1 rounded-full bg-amber-500/15 border border-amber-500/40 text-amber-400 text-xs font-bold uppercase tracking-wider mb-2">
+                    1939 – 1945
+                </span>
+                <h2 class="text-2xl sm:text-3xl font-extrabold text-white">Hadműveleti Tervezés</h2>
+                <p class="text-slate-400 text-sm mt-1">Válaszd ki a résztvevők számát, írd be a parancsnokok nevét, majd indítsd a játékot!</p>
+            </div>
+
+            <!-- Játékosok számának kiválasztása -->
+            <div class="mb-5">
+                <label class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">Játékosok száma (2–4 fő)</label>
+                <div class="grid grid-cols-3 gap-3" id="player-count-buttons">
+                    <button type="button" onclick="setPlayerCount(2)" data-count="2" class="count-btn py-2.5 rounded-xl font-bold text-sm border transition cursor-pointer bg-amber-500 text-slate-950 border-amber-400 shadow-lg">
+                        2 Játékos
+                    </button>
+                    <button type="button" onclick="setPlayerCount(3)" data-count="3" class="count-btn py-2.5 rounded-xl font-bold text-sm border transition cursor-pointer bg-slate-800 text-slate-300 border-slate-700 hover:bg-slate-700">
+                        3 Játékos
+                    </button>
+                    <button type="button" onclick="setPlayerCount(4)" data-count="4" class="count-btn py-2.5 rounded-xl font-bold text-sm border transition cursor-pointer bg-slate-800 text-slate-300 border-slate-700 hover:bg-slate-700">
+                        4 Játékos
+                    </button>
+                </div>
+            </div>
+
+            <!-- Valódi, közvetlenül szerkeszthető HTML névbeviteli mezők -->
+            <div class="mb-6">
+                <label class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">Parancsnokok nevei (kattints a mezőbe a beíráshoz)</label>
+                <div class="space-y-3" id="player-inputs-wrapper">
+                    <div id="player-row-0" class="flex items-center gap-3 bg-slate-900/90 border border-slate-700 focus-within:border-amber-400 rounded-xl px-3.5 py-2.5 transition">
+                        <span class="w-4 h-4 rounded-full bg-red-500 border border-white shrink-0" title="Vörös bábu"></span>
+                        <span class="text-xs font-bold text-red-400 w-16 shrink-0">1. Vörös:</span>
+                        <input type="text" id="player-name-0" maxlength="22" placeholder="1. Parancsnok" autocomplete="off"
+                            class="w-full bg-transparent text-white placeholder-slate-500 text-sm sm:text-base font-semibold focus:outline-none">
+                    </div>
+
+                    <div id="player-row-1" class="flex items-center gap-3 bg-slate-900/90 border border-slate-700 focus-within:border-amber-400 rounded-xl px-3.5 py-2.5 transition">
+                        <span class="w-4 h-4 rounded-full bg-blue-500 border border-white shrink-0" title="Kék bábu"></span>
+                        <span class="text-xs font-bold text-blue-400 w-16 shrink-0">2. Kék:</span>
+                        <input type="text" id="player-name-1" maxlength="22" placeholder="2. Parancsnok" autocomplete="off"
+                            class="w-full bg-transparent text-white placeholder-slate-500 text-sm sm:text-base font-semibold focus:outline-none">
+                    </div>
+
+                    <div id="player-row-2" class="hidden flex items-center gap-3 bg-slate-900/90 border border-slate-700 focus-within:border-amber-400 rounded-xl px-3.5 py-2.5 transition">
+                        <span class="w-4 h-4 rounded-full bg-emerald-500 border border-white shrink-0" title="Zöld bábu"></span>
+                        <span class="text-xs font-bold text-emerald-400 w-16 shrink-0">3. Zöld:</span>
+                        <input type="text" id="player-name-2" maxlength="22" placeholder="3. Parancsnok" autocomplete="off"
+                            class="w-full bg-transparent text-white placeholder-slate-500 text-sm sm:text-base font-semibold focus:outline-none">
+                    </div>
+
+                    <div id="player-row-3" class="hidden flex items-center gap-3 bg-slate-900/90 border border-slate-700 focus-within:border-amber-400 rounded-xl px-3.5 py-2.5 transition">
+                        <span class="w-4 h-4 rounded-full bg-amber-500 border border-white shrink-0" title="Arany bábu"></span>
+                        <span class="text-xs font-bold text-amber-400 w-16 shrink-0">4. Arany:</span>
+                        <input type="text" id="player-name-3" maxlength="22" placeholder="4. Parancsnok" autocomplete="off"
+                            class="w-full bg-transparent text-white placeholder-slate-500 text-sm sm:text-base font-semibold focus:outline-none">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Rövid játékszabály -->
+            <div class="bg-slate-900/80 border border-slate-800 rounded-xl p-4 mb-6 text-xs text-slate-300 space-y-1.5">
+                <div class="font-bold text-amber-400 uppercase tracking-wider mb-1">Játékszabályok röviden:</div>
+                <div class="flex items-center gap-2"><span class="w-3 h-3 rounded-sm bg-slate-600 inline-block shrink-0"></span> <span><b>Normál mező:</b> Történelmi kérdés (10–15 pont)</span></div>
+                <div class="flex items-center gap-2"><span class="w-3 h-3 rounded-sm bg-red-600 inline-block shrink-0"></span> <span><b>Csata mező:</b> Nehezebb kérdés (20–25 pont + 1 bónusz lépés)</span></div>
+                <div class="flex items-center gap-2"><span class="w-3 h-3 rounded-sm bg-amber-500 inline-block shrink-0"></span> <span><b>Diplomáciai mező:</b> Választás biztos pont és kockázatos lépés között</span></div>
+                <div class="flex items-center gap-2"><span class="w-3 h-3 rounded-sm bg-purple-700 inline-block shrink-0"></span> <span><b>Katasztrófa mező:</b> Negatív hadiesemény (pontlevonás vagy visszalépés)</span></div>
+            </div>
+
+            <button type="button" id="start-game-btn" onclick="startGame()" class="w-full py-4 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-extrabold text-base sm:text-lg shadow-xl transition transform active:scale-[0.99] cursor-pointer relative z-30">
+                JÁTÉK INDÍTÁSA ▶
+            </button>
+        </div>
+    </main>
+
+    <!-- 2. FŐ JÁTÉKKÉPERNYŐ -->
+    <div id="game-screen" class="hidden flex-1 flex flex-col justify-between max-w-[1440px] w-full mx-auto p-3 sm:p-4 gap-3 sm:gap-4">
+        
+        <!-- FELSŐ RÉSZ: EURÓPA TÉRKÉP + IRÁNYÍTÓPULT -->
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-4 flex-1 min-h-[340px]">
+            
+            <!-- BAL / KÖZÉPSŐ RÉSZ: EURÓPA TÉRKÉP (8 oszlop) -->
+            <div class="lg:col-span-8 bg-[#121926] border border-slate-800 rounded-2xl p-3 sm:p-4 flex flex-col justify-between relative overflow-hidden shadow-xl">
+                <div class="flex flex-wrap items-center justify-between gap-2 z-10 mb-2">
+                    <div>
+                        <span class="text-[11px] font-bold uppercase tracking-widest text-amber-400">Európai Hadszíntér (1939–1945)</span>
+                        <h2 id="map-event-title" class="text-base sm:text-lg font-bold text-white">1939.09 – Lengyelország</h2>
+                    </div>
+                    <div id="map-event-badge" class="px-2.5 py-1 rounded-lg text-xs font-bold bg-slate-800 text-slate-300 border border-slate-700">
+                        Kiindulópont
+                    </div>
+                </div>
+
+                <!-- EURÓPA TÉRKÉP RAJZ -->
+                <div class="relative flex-1 w-full bg-[#0c1421] rounded-xl border border-slate-800/90 overflow-hidden flex items-center justify-center min-h-[240px]">
+                    <svg id="europe-svg" viewBox="0 0 800 450" class="w-full h-full max-h-[370px] object-contain">
+                        <defs>
+                            <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
+                                <path d="M 40 0 L 0 0 0 40" fill="none" stroke="#182438" stroke-width="1"/>
+                            </pattern>
+                            <radialGradient id="seaGrad" cx="50%" cy="50%" r="70%">
+                                <stop offset="0%" stop-color="#132238"/>
+                                <stop offset="100%" stop-color="#09101c"/>
+                            </radialGradient>
+                        </defs>
+
+                        <!-- Tenger háttér és rács -->
+                        <rect width="800" height="450" fill="url(#seaGrad)"/>
+                        <rect width="800" height="450" fill="url(#grid)"/>
+
+                        <!-- Országok és térségek -->
+                        <g stroke="#3b4d66" stroke-width="1.5" stroke-linejoin="round">
+                            <!-- Skandinávia -->
+                            <path d="M320,125 L345,55 L410,20 L465,30 L455,85 L495,115 L455,145 L425,135 L395,155 L365,140 L335,145 Z" fill="#1e293b"/>
+                            <text x="395" y="95" fill="#64748b" font-size="11" font-weight="bold" stroke="none">SKANDINÁVIA</text>
+
+                            <!-- Brit-szigetek -->
+                            <path d="M185,180 L205,155 L225,165 L235,215 L190,225 L180,205 Z" fill="#233247"/>
+                            <path d="M150,190 L172,185 L170,212 L148,210 Z" fill="#233247"/>
+                            <text x="186" y="198" fill="#94a3b8" font-size="9" font-weight="bold" stroke="none">BRIT-SZ.</text>
+
+                            <!-- Ibériai-félsziget -->
+                            <path d="M115,320 L185,315 L205,345 L165,385 L110,375 Z" fill="#1e293b"/>
+                            <text x="135" y="352" fill="#64748b" font-size="10" font-weight="bold" stroke="none">IBÉRIA</text>
+
+                            <!-- Franciaország -->
+                            <path d="M205,235 L265,220 L285,255 L265,305 L195,310 L190,265 Z" fill="#243347"/>
+                            <text x="218" y="272" fill="#94a3b8" font-size="11" font-weight="bold" stroke="none">FRANCIAO.</text>
+
+                            <!-- Németország -->
+                            <path d="M275,195 L355,190 L365,245 L325,260 L280,250 Z" fill="#2d3748"/>
+                            <text x="295" y="226" fill="#cbd5e1" font-size="11" font-weight="bold" stroke="none">NÉMETO.</text>
+
+                            <!-- Olaszország -->
+                            <path d="M295,265 L340,265 L380,335 L360,355 L325,305 L290,285 Z" fill="#233247"/>
+                            <text x="322" y="302" fill="#94a3b8" font-size="10" font-weight="bold" stroke="none">OLASZO.</text>
+
+                            <!-- Lengyelország -->
+                            <path d="M360,180 L445,165 L455,225 L370,235 Z" fill="#26354a"/>
+                            <text x="382" y="205" fill="#94a3b8" font-size="10" font-weight="bold" stroke="none">LENGYELO.</text>
+
+                            <!-- Magyarország -->
+                            <path d="M355,240 L435,235 L445,275 L365,278 Z" fill="#2a3b52"/>
+                            <text x="372" y="261" fill="#e2e8f0" font-size="10" font-weight="bold" stroke="none">MAGYARO.</text>
+
+                            <!-- Balkán -->
+                            <path d="M375,282 L455,280 L465,355 L415,375 L385,320 Z" fill="#1e293b"/>
+                            <text x="405" y="325" fill="#64748b" font-size="10" font-weight="bold" stroke="none">BALKÁN</text>
+
+                            <!-- Szovjetunió -->
+                            <path d="M450,120 L740,85 L765,310 L540,315 L465,275 L455,175 Z" fill="#26293a"/>
+                            <text x="565" y="185" fill="#cbd5e1" font-size="14" font-weight="bold" stroke="none">SZOVJETUNIÓ</text>
+
+                            <!-- Észak-Afrika -->
+                            <path d="M120,400 L420,400 L560,390 L680,415 L680,448 L120,448 Z" fill="#292524"/>
+                            <text x="230" y="428" fill="#a8a29e" font-size="11" font-weight="bold" stroke="none">ÉSZAK-AFRIKA</text>
+                            <text x="515" y="425" fill="#a8a29e" font-size="11" font-weight="bold" stroke="none">EGYIPTOM / EL-ALAMEIN</text>
+                        </g>
+
+                        <!-- Összekötő útvonal -->
+                        <polyline id="map-route-line" fill="none" stroke="#d4af37" stroke-width="1.5" stroke-dasharray="4 4" opacity="0.35" points=""/>
+
+                        <!-- Helyszín pontok -->
+                        <g id="map-landmarks"></g>
+
+                        <!-- Aktuális helyszín jelölő -->
+                        <g id="active-marker" transform="translate(405, 200)">
+                            <circle r="16" fill="none" stroke="#ef4444" stroke-width="2.5" class="map-pulse"/>
+                            <circle r="7" fill="#ef4444" stroke="#ffffff" stroke-width="2"/>
+                            <rect x="-64" y="-32" width="128" height="20" rx="5" fill="#0f172a" stroke="#f59e0b" stroke-width="1.2"/>
+                            <text id="active-marker-label" x="0" y="-19" text-anchor="middle" fill="#fbbf24" font-size="10" font-weight="bold">Lengyelország</text>
+                        </g>
+                    </svg>
+                </div>
+
+                <!-- Esemény leírása a térkép alatt -->
+                <div class="mt-2.5 bg-slate-900/90 border border-slate-800 rounded-xl px-3.5 py-2 flex items-center justify-between gap-3">
+                    <p id="map-event-desc" class="text-xs sm:text-sm text-slate-300">
+                        A háború kitörése – A német hadsereg megtámadja Lengyelországot.
+                    </p>
+                </div>
+            </div>
+
+            <!-- JOBB RÉSZ: JÁTÉKOSOK RANGSORA ÉS DOBÓKOCKA VEZÉRLŐ (4 oszlop) -->
+            <div class="lg:col-span-4 flex flex-col gap-3 sm:gap-4">
+                
+                <!-- Játékosok és pontszámok -->
+                <div class="bg-[#121926] border border-slate-800 rounded-2xl p-4 shadow-xl flex-1">
+                    <div class="flex items-center justify-between mb-3">
+                        <h3 class="text-xs font-bold uppercase tracking-wider text-slate-400">Parancsnokok & Pontszámok</h3>
+                        <span class="text-xs text-slate-500">Cél: 24. mező (1945)</span>
+                    </div>
+                    <div id="scoreboard-list" class="space-y-2.5">
+                        <!-- JavaScript tölti fel -->
+                    </div>
+                </div>
+
+                <!-- Aktuális kör és Négyoldalú dobókocka panel -->
+                <div class="bg-gradient-to-b from-[#172030] to-[#111722] border border-amber-500/30 rounded-2xl p-4 shadow-xl">
+                    <div class="flex items-center justify-between mb-3">
+                        <div>
+                            <span class="text-[11px] uppercase tracking-wider text-slate-400 block">Soron következő:</span>
+                            <div class="flex items-center gap-2 mt-0.5">
+                                <span id="current-player-dot" class="w-3.5 h-3.5 rounded-full inline-block border border-white"></span>
+                                <span id="current-player-name" class="text-lg font-extrabold text-white">1. Parancsnok</span>
+                            </div>
+                        </div>
+
+                        <!-- Vizuális négyoldalú dobókocka -->
+                        <div id="dice-box" class="w-16 h-16 bg-slate-900 rounded-2xl shadow-inner border-2 border-amber-400 flex items-center justify-center relative" title="Négyoldalú dobókocka (1–4)">
+                            <svg id="dice-svg" viewBox="0 0 100 100" class="w-14 h-14">
+                                <polygon points="50,8 93,85 7,85" fill="#f8fafc" stroke="#d97706" stroke-width="4" stroke-linejoin="round"/>
+                                <text x="50" y="70" text-anchor="middle" fill="#0f172a" font-size="34" font-weight="900">4</text>
+                            </svg>
+                        </div>
+                    </div>
+
+                    <div id="turn-status-text" class="text-xs text-amber-300/90 bg-amber-500/10 border border-amber-500/20 rounded-lg px-3 py-2 mb-3 text-center font-medium">
+                        Kattints a „Dobás” gombra a lépéshez!
+                    </div>
+
+                    <button type="button" id="roll-btn" onclick="handleRollDice()" class="w-full py-3.5 rounded-xl bg-gradient-to-r from-red-600 to-red-700 hover:from-red-500 hover:to-red-600 disabled:from-slate-700 disabled:to-slate-800 disabled:text-slate-500 text-white font-extrabold text-base tracking-wide shadow-lg transition transform active:scale-[0.98] cursor-pointer disabled:cursor-not-allowed flex items-center justify-center gap-2">
+                        <span>🔺</span>
+                        <span id="roll-btn-label">DOBÁS (1–4)</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- ALSÓ RÉSZ: IDŐVONAL (1939 – 1945, 24 MEZŐ) -->
+        <div class="bg-[#121926] border border-slate-800 rounded-2xl p-3 sm:p-4 shadow-xl">
+            <div class="flex flex-wrap items-center justify-between gap-2 mb-2.5">
+                <div class="flex items-center gap-2">
+                    <span class="text-xs font-bold uppercase tracking-wider text-amber-400">Történelmi Idővonal (1939–1945)</span>
+                    <span class="text-xs text-slate-500 hidden sm:inline">• Kattints bármelyik mezőre a térképes megtekintéshez</span>
+                </div>
+                <div class="flex flex-wrap items-center gap-3 text-[11px] text-slate-400">
+                    <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-sm bg-slate-600 inline-block"></span> Normál</span>
+                    <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-sm bg-red-600 inline-block"></span> Csata</span>
+                    <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-sm bg-amber-500 inline-block"></span> Diplomácia</span>
+                    <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-sm bg-purple-700 inline-block"></span> Katasztrófa</span>
+                </div>
+            </div>
+
+            <!-- Vízszintesen görgethető mezősor -->
+            <div id="timeline-container" class="timeline-scroll flex items-stretch gap-2.5 overflow-x-auto pb-2 pt-1">
+                <!-- A 24 mezőt a JavaScript generálja -->
+            </div>
+        </div>
+    </div>
+
+    <!-- 3. KÉRDÉSKÁRTYA ÉS ESEMÉNY FELUGRÓ ABLAK -->
+    <div id="event-modal" class="hidden fixed inset-0 bg-black/80 backdrop-blur-sm z-40 flex items-center justify-center p-4">
+        <div class="max-w-2xl w-full bg-[#151d2b] border border-slate-700 rounded-2xl shadow-2xl overflow-hidden modal-animate">
+            
+            <!-- Ablak fejléc -->
+            <div id="modal-header-bar" class="px-6 py-4 bg-slate-800 border-b border-slate-700 flex items-center justify-between gap-2">
+                <div class="flex items-center gap-2.5">
+                    <span id="modal-type-icon" class="text-xl">📜</span>
+                    <div>
+                        <span id="modal-category" class="text-xs font-bold uppercase tracking-wider text-amber-400 block">Történelmi Kérdés</span>
+                        <h3 id="modal-tile-title" class="text-base font-bold text-white">1939.09 – Lengyelország</h3>
+                    </div>
+                </div>
+                <span id="modal-points-badge" class="px-3 py-1 rounded-full text-xs font-extrabold bg-amber-500/20 text-amber-300 border border-amber-500/40 shrink-0">
+                    +15 Pont
+                </span>
+            </div>
+
+            <!-- KÉRDÉS TARTALOM -->
+            <div id="question-content" class="p-6">
+                <p id="question-text" class="text-lg sm:text-xl font-bold text-white leading-snug mb-5">
+                    Kérdés szövege...
+                </p>
+
+                <div id="options-container" class="space-y-3">
+                    <!-- 4 válaszgomb -->
+                </div>
+
+                <!-- Visszajelzés és magyarázat -->
+                <div id="feedback-box" class="hidden mt-5 p-4 rounded-xl border">
+                    <div id="feedback-title" class="font-extrabold text-base mb-1"></div>
+                    <p id="feedback-explanation" class="text-sm text-slate-200 leading-relaxed"></p>
+                </div>
+            </div>
+
+            <!-- DIPLOMÁCIA / KATASZTRÓFA TARTALOM -->
+            <div id="special-event-content" class="hidden p-6">
+                <h4 id="special-title" class="text-xl font-extrabold text-white mb-2"></h4>
+                <p id="special-desc" class="text-sm sm:text-base text-slate-300 mb-6 leading-relaxed"></p>
+
+                <div id="diplomacy-choices" class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <!-- Két stratégiai döntés gomb -->
+                </div>
+
+                <div id="special-result-box" class="hidden mt-4 p-4 rounded-xl bg-slate-900 border border-slate-700 text-sm sm:text-base font-medium text-amber-300">
+                </div>
+            </div>
+
+            <!-- Ablak lábléc (Tovább gomb) -->
+            <div id="modal-footer" class="hidden px-6 py-4 bg-slate-900/90 border-t border-slate-800 flex justify-end">
+                <button type="button" onclick="finishTurn()" class="px-6 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-extrabold text-sm sm:text-base shadow-lg transition cursor-pointer">
+                    Következő játékos ▶
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 4. ÚJ JÁTÉK MEGERŐSÍTŐ ABLAK -->
+    <div id="confirm-modal" class="hidden fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+        <div class="max-w-md w-full bg-[#151d2b] border border-slate-700 rounded-2xl p-6 shadow-2xl text-center modal-animate">
+            <h3 class="text-xl font-extrabold text-white mb-2">Új játék indítása</h3>
+            <p class="text-sm text-slate-300 mb-6">Biztosan megszakítod a jelenlegi hadműveletet és visszatérsz a parancsnokok kiválasztásához?</p>
+            <div class="flex items-center justify-center gap-3">
+                <button type="button" onclick="closeRestartConfirm()" class="px-5 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold text-sm transition cursor-pointer">
+                    Mégse
+                </button>
+                <button type="button" onclick="resetToSetup()" class="px-5 py-2.5 rounded-xl bg-red-600 hover:bg-red-500 text-white font-bold text-sm transition cursor-pointer">
+                    Igen, új játék
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 5. VÉGEREDMÉNY KÉPERNYŐ -->
+    <div id="gameover-modal" class="hidden fixed inset-0 bg-black/85 backdrop-blur-md z-50 flex items-center justify-center p-4">
+        <div class="max-w-xl w-full bg-[#151d2b] border-2 border-amber-500/60 rounded-2xl p-6 sm:p-8 shadow-2xl text-center modal-animate">
+            <div class="w-16 h-16 mx-auto mb-3 rounded-full bg-amber-500/20 border border-amber-400 flex items-center justify-center text-3xl">
+                🏆
+            </div>
+            <span class="text-xs font-bold uppercase tracking-widest text-amber-400">1945 – A háború vége Európában</span>
+            <h2 class="text-2xl sm:text-3xl font-extrabold text-white mt-1 mb-2">Végeredmény és Ranglista</h2>
+            <p id="winner-announcement" class="text-sm sm:text-base text-slate-300 mb-6">
+                Gratulálunk a győztesnek!
+            </p>
+
+            <div id="final-rankings" class="space-y-3 mb-7 text-left">
+                <!-- Végső sorrend -->
+            </div>
+
+            <button type="button" onclick="resetToSetup()" class="w-full py-3.5 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-extrabold text-base shadow-xl transition cursor-pointer">
+                ÚJ JÁTÉK INDÍTÁSA
+            </button>
+        </div>
+    </div>
+
+    <script>
+        // =====================================================================
+        // 1. BIZTONSÁGOS HANGGENERÁTOR (KÜLSŐ FÁJLOK NÉLKÜL)
+        // =====================================================================
+        let audioCtx = null;
+        let soundEnabled = true;
+
+        function initAudio() {
+            try {
+                if (!audioCtx) {
+                    const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+                    if (AudioContextClass) {
+                        audioCtx = new AudioContextClass();
+                    }
+                }
+                if (audioCtx && audioCtx.state === 'suspended') {
+                    audioCtx.resume();
+                }
+            } catch (e) {
+                // Ha a böngésző tiltja a hangot, a játék hibamentesen fut tovább
+            }
+        }
+
+        function toggleSound() {
+            soundEnabled = !soundEnabled;
+            const icon = document.getElementById('sound-icon');
+            const label = document.getElementById('sound-label');
+            if (icon) icon.textContent = soundEnabled ? '🔊' : '🔇';
+            if (label) label.textContent = soundEnabled ? 'Hang: Be' : 'Hang: Ki';
+        }
+
+        function playSound(type) {
+            if (!soundEnabled) return;
+            try {
+                initAudio();
+                if (!audioCtx) return;
+
+                const now = audioCtx.currentTime;
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+
+                if (type === 'dice') {
+                    osc.type = 'triangle';
+                    osc.frequency.setValueAtTime(260 + Math.random() * 140, now);
+                    gain.gain.setValueAtTime(0.12, now);
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.07);
+                    osc.start(now);
+                    osc.stop(now + 0.07);
+                } else if (type === 'step') {
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(420, now);
+                    osc.frequency.exponentialRampToValueAtTime(560, now + 0.09);
+                    gain.gain.setValueAtTime(0.1, now);
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.09);
+                    osc.start(now);
+                    osc.stop(now + 0.09);
+                } else if (type === 'correct') {
+                    osc.type = 'triangle';
+                    osc.frequency.setValueAtTime(523.25, now);
+                    osc.frequency.setValueAtTime(659.25, now + 0.1);
+                    osc.frequency.setValueAtTime(783.99, now + 0.2);
+                    gain.gain.setValueAtTime(0.18, now);
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.45);
+                    osc.start(now);
+                    osc.stop(now + 0.45);
+                } else if (type === 'wrong') {
+                    osc.type = 'sawtooth';
+                    osc.frequency.setValueAtTime(210, now);
+                    osc.frequency.linearRampToValueAtTime(145, now + 0.35);
+                    gain.gain.setValueAtTime(0.15, now);
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.38);
+                    osc.start(now);
+                    osc.stop(now + 0.38);
+                } else if (type === 'event') {
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(392, now);
+                    osc.frequency.setValueAtTime(493.88, now + 0.12);
+                    gain.gain.setValueAtTime(0.15, now);
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.35);
+                    osc.start(now);
+                    osc.stop(now + 0.35);
+                } else if (type === 'win') {
+                    const notes = [523.25, 659.25, 783.99, 1046.50];
+                    notes.forEach((freq, i) => {
+                        const o = audioCtx.createOscillator();
+                        const g = audioCtx.createGain();
+                        o.type = 'triangle';
+                        o.connect(g);
+                        g.connect(audioCtx.destination);
+                        o.frequency.setValueAtTime(freq, now + i * 0.13);
+                        g.gain.setValueAtTime(0.18, now + i * 0.13);
+                        g.gain.exponentialRampToValueAtTime(0.001, now + i * 0.13 + 0.4);
+                        o.start(now + i * 0.13);
+                        o.stop(now + i * 0.13 + 0.4);
+                    });
+                }
+            } catch (e) {
+                // Hang hiba elnyelése
+            }
+        }
+
+        // =====================================================================
+        // 2. JÁTÉK ADATOK: IDŐVONAL MEZŐK, DIPLOMÁCIA ÉS 45 MAGYAR KÉRDÉS
+        // =====================================================================
+        const PLAYER_STYLES = [
+            { name: "Vörös", hex: "#ef4444", bg: "bg-red-500", text: "text-red-400", border: "border-red-500" },
+            { name: "Kék", hex: "#3b82f6", bg: "bg-blue-500", text: "text-blue-400", border: "border-blue-500" },
+            { name: "Zöld", hex: "#10b981", bg: "bg-emerald-500", text: "text-emerald-400", border: "border-emerald-500" },
+            { name: "Arany", hex: "#f59e0b", bg: "bg-amber-500", text: "text-amber-400", border: "border-amber-500" }
+        ];
+
+        // 24 mezős idővonal 1939-től 1945-ig
+        const BOARD_TILES = [
+            { year: "1939.09", title: "Lengyelország", type: "start", x: 405, y: 200, desc: "A háború kitörése – A német hadsereg megtámadja Lengyelországot." },
+            { year: "1939.11", title: "Téli háború", type: "normal", x: 455, y: 115, desc: "Szovjet–finn összecsapás a fagyos északi fronton." },
+            { year: "1940.04", title: "Norvégia", type: "normal", x: 365, y: 105, desc: "Északi hadművelet: harcok Skandinávia ellenőrzéséért." },
+            { year: "1940.05", title: "Dunkerque", type: "disaster", x: 245, y: 225, desc: "Katasztrófa! A szövetséges seregeket bekerítették a tengerparton. (-10 pont)" },
+            { year: "1940.06", title: "Párizs eleste", type: "normal", x: 235, y: 255, desc: "Franciaország kapitulál a német villámháború előtt." },
+            { year: "1940.08", title: "Bécsi döntés", type: "diplomacy", x: 405, y: 255, desc: "Diplomáciai fordulópont Közép-Európában." },
+            { year: "1940.09", title: "Angliai csata", type: "battle", x: 205, y: 200, desc: "Csata mező! Hatalmas légi háború Nagy-Britannia egén." },
+            { year: "1941.04", title: "Balkán hadjárat", type: "normal", x: 415, y: 310, desc: "Jugoszlávia és Görögország megszállása." },
+            { year: "1941.06", title: "Barbarossa", type: "battle", x: 495, y: 195, desc: "Csata mező! Megindul a Szovjetunió elleni invázió." },
+            { year: "1941.12", title: "Moszkva tele", type: "disaster", x: 565, y: 155, desc: "Katasztrófa! Kemény orosz tél és szovjet ellentámadás. (-1 lépés és -5 pont)" },
+            { year: "1942.06", title: "Atlanti csata", type: "normal", x: 135, y: 190, desc: "Tengeralattjáró-háború a szövetséges konvojok ellen." },
+            { year: "1942.10", title: "El-Alamein", type: "battle", x: 535, y: 415, desc: "Csata mező! Sorsdöntő sivatagi ütközet Észak-Afrikában." },
+            { year: "1942.11", title: "Casablanca", type: "diplomacy", x: 155, y: 405, desc: "Diplomácia! Stratégiai egyeztetés a második frontról." },
+            { year: "1943.01", title: "Don-kanyar", type: "disaster", x: 615, y: 225, desc: "Katasztrófa! A 2. magyar hadsereg tragédiája a fagyos Donnál. (-15 pont)" },
+            { year: "1943.02", title: "Sztálingrád", type: "battle", x: 665, y: 245, desc: "Csata mező! A II. világháború legnagyobb fordulópontja." },
+            { year: "1943.07", title: "Kurszk", type: "battle", x: 575, y: 215, desc: "Csata mező! A történelem legnagyobb páncélosütközete." },
+            { year: "1943.09", title: "Olaszország", type: "diplomacy", x: 335, y: 305, desc: "Diplomácia! Olaszország kiugrik a háborúból." },
+            { year: "1943.11", title: "Teherán", type: "diplomacy", x: 725, y: 335, desc: "Diplomácia! A Nagy Hármak első közös csúcstalálkozója." },
+            { year: "1944.06", title: "Normandia", type: "battle", x: 215, y: 238, desc: "Csata mező! Partraszállás Franciaország északi partjainál." },
+            { year: "1944.08", title: "Varsó", type: "disaster", x: 415, y: 202, desc: "Katasztrófa! A varsói felkelés tragikus leverése. (-1 lépés)" },
+            { year: "1944.12", title: "Ardennek", type: "battle", x: 270, y: 235, desc: "Csata mező! Az utolsó német ellentámadás nyugaton." },
+            { year: "1945.02", title: "Budapest & Jalta", type: "diplomacy", x: 395, y: 258, desc: "Diplomácia! Budapest ostroma és a jaltai konferencia." },
+            { year: "1945.04", title: "Berlin ostroma", type: "battle", x: 325, y: 210, desc: "Csata mező! Végső roham a Harmadik Birodalom fővárosáért." },
+            { year: "1945.05", title: "Béke Európában", type: "finish", x: 330, y: 225, desc: "1945. május 8. – A háború vége Európában! Győzelem és béke." }
+        ];
+
+        // Diplomáciai események
+        const DIPLOMACY_EVENTS = [
+            {
+                title: "Titkos hírszerzési akció",
+                desc: "Kódfejtőid elfogtak egy fontos ellenséges rádióüzenetet. Hogyan használod fel az információt?",
+                optA: { title: "Óvatos felderítés", desc: "Biztos pontszerzés (+15 pont)", type: "points", val: 15 },
+                optB: { title: "Merész rajtaütés", desc: "50% esély: +30 pont és +1 lépés | 50% esély: -10 pont", type: "gamble", winPts: 30, winStep: 1, losePts: -10 }
+            },
+            {
+                title: "Szövetséges csúcstalálkozó",
+                desc: "Katonai segélyszállítmányok elosztásáról döntesz a frontvonalak között.",
+                optA: { title: "Utánpótlás megerősítése", desc: "Biztos előny (+10 pont és +1 lépés)", type: "both", pts: 10, step: 1 },
+                optB: { title: "Mindent egy lapra", desc: "50% esély: +35 pont | 50% esély: -15 pont", type: "gamble", winPts: 35, winStep: 0, losePts: -15 }
+            },
+            {
+                title: "Titkos béketapogatózás",
+                desc: "Semleges diplomaták közvetítésével tárgyalások indulnak a hátországban.",
+                optA: { title: "Diplomáciai megállapodás", desc: "Stabilitás és elismerés (+20 pont)", type: "points", val: 20 },
+                optB: { title: "Kockázatos kiugrási kísérlet", desc: "50% esély: +25 pont és +2 lépés | 50% esély: -1 lépés", type: "gambleStep", winPts: 25, winStep: 2, loseStep: -1 }
+            }
+        ];
+
+        // 45 darab tisztán magyar nyelvű kérdés
+        const QUESTIONS_DB = [
+            // HÁBORÚ KITÖRÉSE ÉS OKAI
+            {
+                q: "Melyik eseménnyel vette kezdetét a II. világháború Európában?",
+                options: [
+                    "Németország megtámadta Lengyelországot (1939. szept. 1.)",
+                    "A Szovjetunió megtámadta Finnországot",
+                    "Németország lerohanta Franciaországot",
+                    "Japán megtámadta a hawaii amerikai támaszpontot"
+                ],
+                correct: 0,
+                difficulty: "könnyű",
+                category: "A háború kitörése",
+                explanation: "1939. szeptember 1-jén a német hadsereg megtámadta Lengyelországot, mire két nappal később Nagy-Britannia és Franciaország hadat üzent Németországnak."
+            },
+            {
+                q: "Mi volt a német–szovjet megnemtámadási szerződés titkos záradékának lényege?",
+                options: [
+                    "Kelet-Európa felosztása német és szovjet érdekszférákra",
+                    "Közös támadás Nagy-Britannia ellen",
+                    "Japán bevonása az európai háborúba",
+                    "Ausztria függetlenségének garantálása"
+                ],
+                correct: 0,
+                difficulty: "közepes",
+                category: "A háború kitörése",
+                explanation: "Az 1939. augusztus 23-i megnemtámadási szerződés titkos záradéka felosztotta Lengyelországot és a balti államokat Hitler és Sztálin között."
+            },
+            {
+                q: "Melyik konferencián engedték át a Szudétavidéket Németországnak 1938-ban?",
+                options: ["Müncheni konferencia", "Jaltai konferencia", "Potsdami konferencia", "Teheráni konferencia"],
+                correct: 0,
+                difficulty: "könnyű",
+                category: "Előzmények",
+                explanation: "A nyugati hatalmak a megbékélési politika jegyében Münchenben beleegyeztek Csehszlovákia megcsonkításába."
+            },
+            {
+                q: "Mit jelentett Ausztria 1938-as bekebelezése a Harmadik Birodalomba?",
+                options: [
+                    "Ausztria egyesítését Németországgal ellenállás nélkül",
+                    "A lengyel folyosó lezárását",
+                    "Olaszország belépését a háborúba",
+                    "A francia határvonal áttörését"
+                ],
+                correct: 0,
+                difficulty: "könnyű",
+                category: "Előzmények",
+                explanation: "1938 márciusában a német csapatok ellenállás nélkül bevonultak Ausztriába, egyesítve azt Németországgal."
+            },
+            {
+                q: "Hogyan nevezték az 1939 ősze és 1940 tavasza közötti nyugati fronti állóháborút?",
+                options: ["Furcsa háború", "Villámháború", "Téli háború", "Hidegháború"],
+                correct: 0,
+                difficulty: "közepes",
+                category: "A háború kitörése",
+                explanation: "A hadüzenetek után hónapokig nem történtek nagyobb szárazföldi hadműveletek a német–francia határon."
+            },
+            {
+                q: "Mi volt a „Dinamó-hadművelet” 1940 május–júniusában?",
+                options: [
+                    "A szövetséges csapatok kimenekítése Dunkerque-ből",
+                    "A német invázió Norvégia ellen",
+                    "Párizs felszabadítása",
+                    "A brit légierő ellentámadása Berlin ellen"
+                ],
+                correct: 0,
+                difficulty: "közepes",
+                category: "Nyugati front",
+                explanation: "Több mint 330 000 brit és francia katonát sikerült kimenteni a bekerített Dunkerque kikötőjéből polgári és hadihajók segítségével."
+            },
+            {
+                q: "Melyik országot támadta meg a Szovjetunió 1939 novemberében a téli háborúban?",
+                options: ["Finnországot", "Romániát", "Svédországot", "Törökországot"],
+                correct: 0,
+                difficulty: "könnyű",
+                category: "Északi front",
+                explanation: "A finn hadsereg rendkívül szívósan védekezett, és súlyos veszteségeket okozott a Vörös Hadseregnek, mielőtt békét kötöttek."
+            },
+            {
+                q: "Mi volt a neve a Németország által tervezett, de végül lefújt brit partraszállásnak?",
+                options: ["Oroszlánfóka-hadművelet", "Barbarossa-hadművelet", "Hűbérúr-hadművelet", "Téli vihar hadművelet"],
+                correct: 0,
+                difficulty: "közepes",
+                category: "Angliai csata",
+                explanation: "Mivel a német légierő nem tudta kivívni a légi fölényt az angliai csatában, Hitler elhalasztotta az Oroszlánfóka-hadműveletet."
+            },
+
+            // FONTOS CSATÁK
+            {
+                q: "Mi volt a fedőneve a Szovjetunió elleni 1941. június 22-i német támadásnak?",
+                options: ["Barbarossa-hadművelet", "Citadella-hadművelet", "Bagratyion-hadművelet", "Tájfun-hadművelet"],
+                correct: 0,
+                difficulty: "könnyű",
+                category: "Keleti front",
+                explanation: "A világtörténelem legnagyobb szárazföldi inváziójában több mint hárommillió tengelyhatalmi katona támadta meg a Szovjetuniót."
+            },
+            {
+                q: "Melyik csata jelentette a keleti front legnagyobb stratégiai fordulópontját 1942–43 telén?",
+                options: ["Sztálingrádi csata", "Leningrád ostroma", "Kijevi csata", "Szmolenszki csata"],
+                correct: 0,
+                difficulty: "könnyű",
+                category: "Fordulópontok",
+                explanation: "A Paulus tábornagy vezette német 6. hadsereg bekerítése és megadása után a német hadsereg elvesztette stratégiai kezdeményezését."
+            },
+            {
+                q: "Melyik 1943. júliusi csata ismert a történelem legnagyobb páncélosütközeteként?",
+                options: ["Kurszki csata", "El-alameini csata", "Ardenneki offenzíva", "Tobruki csata"],
+                correct: 0,
+                difficulty: "közepes",
+                category: "Nagy csaták",
+                explanation: "A Citadella-hadművelet során Prohorovka térségében több ezer harckocsi csapott össze, a szovjet győzelem végleg megtörte a német páncéloserőt."
+            },
+            {
+                q: "Mikor történt a normandiai partraszállás?",
+                options: ["1944. június 6.", "1943. július 10.", "1944. augusztus 15.", "1942. november 8."],
+                correct: 0,
+                difficulty: "könnyű",
+                category: "Nyugati front",
+                explanation: "A nagyszabású szövetséges hadművelet keretében öt partszakaszon nyitották meg a második frontot Franciaországban."
+            },
+            {
+                q: "Melyik csata állította meg a német előrenyomulást Észak-Afrikában 1942 őszén?",
+                options: ["Második el-alameini csata", "Kasserine-hágói csata", "Máltai csata", "Szuezi csata"],
+                correct: 0,
+                difficulty: "közepes",
+                category: "Afrikai front",
+                explanation: "Bernard Montgomery brit tábornok csapatai legyőzték Erwin Rommel Afrika-hadtestét Egyiptomban."
+            },
+            {
+                q: "Melyik 1942. júniusi tengeri-légi csata hozott fordulatot a csendes-óceáni hadszíntéren?",
+                options: ["Midwayi csata", "Korall-tengeri csata", "Leyte-öbölbeli csata", "Ivo Dzsima-i csata"],
+                correct: 0,
+                difficulty: "közepes",
+                category: "Csendes-óceán",
+                explanation: "Az amerikai flotta négy japán repülőgép-hordozót süllyesztett el, megtörve Japán tengeri fölényét."
+            },
+            {
+                q: "Mikor támadta meg Japán az amerikai csendes-óceáni flottatámaszpontot Hawaiin?",
+                options: ["1941. december 7.", "1940. szeptember 27.", "1942. január 1.", "1941. június 22."],
+                correct: 0,
+                difficulty: "könnyű",
+                category: "Csendes-óceán",
+                explanation: "A meglepetésszerű japán légitámadás következtében az Egyesült Államok hivatalosan is belépett a II. világháborúba."
+            },
+            {
+                q: "Mi volt a németek utolsó nagy nyugati ellentámadása 1944 decemberében?",
+                options: ["Ardenneki offenzíva", "Weserübung-hadművelet", "Valkűr-hadművelet", "Tavaszi ébredés hadművelet"],
+                correct: 0,
+                difficulty: "közepes",
+                category: "Nyugati front",
+                explanation: "A rossz időjárást kihasználva a németek megpróbáltak áttörni Antwerpen felé, de Bastogne védelme és az üzemanyaghiány megállította őket."
+            },
+            {
+                q: "Hány napig tartott Leningrád (Szentpétervár) német blokádja?",
+                options: ["Közel 900 napig (872 nap)", "180 napig", "410 napig", "1200 napig"],
+                correct: 0,
+                difficulty: "nehéz",
+                category: "Keleti front",
+                explanation: "1941 szeptembere és 1944 januárja között a város lakossága borzalmas éhínséget és hideget élt túl a Ladoga-tó jegén át vezetett „Élet útján” keresztül."
+            },
+            {
+                q: "Melyik 1944 nyári szovjet offenzíva semmisítette meg a német Közép Hadseregcsoportot?",
+                options: ["Bagratyion-hadművelet", "Uránusz-hadművelet", "Szikra-hadművelet", "Kutuzov-hadművelet"],
+                correct: 0,
+                difficulty: "nehéz",
+                category: "Keleti front",
+                explanation: "A normandiai partraszállással szinte egy időben indított szovjet támadás felszabadította Fehéroroszországot és Lengyelország keleti részét."
+            },
+
+            // KULCSSZEMÉLYEK
+            {
+                q: "Ki volt Nagy-Britannia miniszterelnöke 1940 májusától a háború végéig?",
+                options: ["Winston Churchill", "Neville Chamberlain", "Clement Attlee", "Anthony Eden"],
+                correct: 0,
+                difficulty: "könnyű",
+                category: "Kulcsszemélyek",
+                explanation: "Churchill híres beszédeivel („vért, fáradságot, könnyeket és verejtéket”) tartotta a lelket a brit népben 1940 legsötétebb hónapjaiban."
+            },
+            {
+                q: "Melyik német tábornagyot nevezték „Sivatagi Rókának”?",
+                options: ["Erwin Rommel", "Heinz Guderian", "Erich von Manstein", "Friedrich Paulus"],
+                correct: 0,
+                difficulty: "könnyű",
+                category: "Kulcsszemélyek",
+                explanation: "Rommel a Német Afrika-hadtest parancsnokaként merész manővereivel vívta ki mind saját katonái, mind az ellenség elismerését."
+            },
+            {
+                q: "Ki volt a szövetséges expedíciós erők főparancsnoka Európában a normandiai partraszálláskor?",
+                options: ["Dwight D. Eisenhower", "George S. Patton", "Douglas MacArthur", "Omar Bradley"],
+                correct: 0,
+                difficulty: "könnyű",
+                category: "Kulcsszemélyek",
+                explanation: "Eisenhower tábornok hangolta össze az amerikai, brit, kanadai és más szövetséges csapatok nyugati hadműveleteit."
+            },
+            {
+                q: "Melyik szovjet marsall irányította Moszkva, Sztálingrád védelmét és Berlin bevételét?",
+                options: ["Georgij Zsukov", "Kliment Vorosilov", "Szemjon Bugyonnij", "Vaszilij Csujkov"],
+                correct: 0,
+                difficulty: "közepes",
+                category: "Kulcsszemélyek",
+                explanation: "Zsukov volt a Szovjetunió legsikeresebb katonai vezetője, aki 1945. május 8-án Berlinben is átvette a német kapitulációt."
+            },
+            {
+                q: "Ki vezette a Szabad Franciaország mozgalmat a londoni emigrációból?",
+                options: ["Charles de Gaulle", "Philippe Pétain", "Jean Moulin", "François Darlan"],
+                correct: 0,
+                difficulty: "közepes",
+                category: "Kulcsszemélyek",
+                explanation: "De Gaulle tábornok 1940. június 18-án a brit rádióban szólította fel ellenállásra a francia népet."
+            },
+            {
+                q: "Ki volt az Egyesült Államok elnöke szinte a teljes II. világháború alatt (1945 áprilisáig)?",
+                options: ["Franklin D. Roosevelt", "Harry S. Truman", "Herbert Hoover", "Woodrow Wilson"],
+                correct: 0,
+                difficulty: "könnyű",
+                category: "Kulcsszemélyek",
+                explanation: "Rooseveltet négy ciklusra választották meg; halála után alelnöke, Harry S. Truman vette át az elnökséget."
+            },
+            {
+                q: "Melyik német ezredes helyezett el bombát Hitler főhadiszállásán 1944. július 20-án?",
+                options: ["Claus von Stauffenberg", "Wilhelm Canaris", "Ludwig Beck", "Henning von Tresckow"],
+                correct: 0,
+                difficulty: "közepes",
+                category: "Ellenállás",
+                explanation: "A Valkűr-hadművelet néven ismert katonai összeesküvés kudarcot vallott, Hitler csak könnyebben sérült meg."
+            },
+            {
+                q: "Ki volt a csendes-óceáni amerikai szárazföldi erők főparancsnoka („Visszatérek!”)?",
+                options: ["Douglas MacArthur", "Chester W. Nimitz", "William Halsey", "George Marshall"],
+                correct: 0,
+                difficulty: "közepes",
+                category: "Kulcsszemélyek",
+                explanation: "MacArthur a Fülöp-szigetek elhagyásakor ígérte meg visszatérését, és 1945-ben ő fogadta a japán megadást."
+            },
+            {
+                q: "Melyik svéd diplomata mentett meg több tízezer magyar zsidót Budapesten 1944-ben?",
+                options: ["Raoul Wallenberg", "Folke Bernadotte", "Carl Lutz", "Giorgio Perlasca"],
+                correct: 0,
+                difficulty: "könnyű",
+                category: "Embermentők",
+                explanation: "Wallenberg svéd védlevelekkel és védett házakkal emberfeletti munkát végzett a nyilas rémuralom idején."
+            },
+            {
+                q: "Ki volt Olaszország fasiszta diktátora a II. világháború idején?",
+                options: ["Benito Mussolini", "Pietro Badoglio", "III. Viktor Emánuel", "Galeazzo Ciano"],
+                correct: 0,
+                difficulty: "könnyű",
+                category: "Kulcsszemélyek",
+                explanation: "Mussolini 1940 júniusában léptette be Olaszországot a háborúba Németország oldalán."
+            },
+
+            // MAGYAR VONATKOZÁSOK
+            {
+                q: "Milyen ürüggyel lépett be Magyarország a Szovjetunió elleni háborúba 1941. június 27-én?",
+                options: ["Kassa bombázása", "A losonci incidens", "A munkácsi határvita", "A belgrádi nagykövetség megtámadása"],
+                correct: 0,
+                difficulty: "könnyű",
+                category: "Magyar vonatkozás",
+                explanation: "1941. június 26-án felségjelzés nélküli gépek bombázták Kassát, amit a kormány szovjet támadásnak minősített."
+            },
+            {
+                q: "Mikor indult meg a szovjet áttörés a 2. magyar hadsereg ellen a Don-kanyarnál?",
+                options: ["1943. január 12.", "1942. június 28.", "1943. augusztus 20.", "1944. március 19."],
+                correct: 0,
+                difficulty: "közepes",
+                category: "Magyar vonatkozás",
+                explanation: "A mínusz 30–40 fokos hidegben, hiányos fegyverzettel harcoló 2. magyar hadsereg Uriv térségében súlyos, több tízezres veszteséget szenvedett."
+            },
+            {
+                q: "Mikor szállták meg a német csapatok Magyarországot (Margaréta-hadművelet)?",
+                options: ["1944. március 19.", "1944. október 15.", "1941. április 11.", "1943. szeptember 8."],
+                correct: 0,
+                difficulty: "könnyű",
+                category: "Magyar vonatkozás",
+                explanation: "Hitler így akadályozta meg Kállay Miklós kormányának kiugrási kísérletét, és bábkormányt neveztetett ki Sztójay Döme vezetésével."
+            },
+            {
+                q: "Mi történt 1944. október 15-én Magyarországon?",
+                options: [
+                    "Horthy sikertelen kiugrási kísérlete és a nyilas hatalomátvétel",
+                    "Budapest felszabadítása",
+                    "A második bécsi döntés aláírása",
+                    "A debreceni ideiglenes kormány megalakulása"
+                ],
+                correct: 0,
+                difficulty: "könnyű",
+                category: "Magyar vonatkozás",
+                explanation: "Horthy Miklós kormányzó rádiószózatban jelentette be a fegyverszünetet, de a németek elrabolták fiát, és Szálasi Ferencet juttatták hatalomra."
+            },
+            {
+                q: "Melyik magyar miniszterelnök vetett véget önkezével életének 1941. április 3-án, Jugoszlávia megtámadása miatt?",
+                options: ["Teleki Pál", "Bárdossy László", "Bethlen István", "Imrédy Béla"],
+                correct: 0,
+                difficulty: "könnyű",
+                category: "Magyar vonatkozás",
+                explanation: "Teleki nem tudta feloldani az ellentétet a német követelések és a Jugoszláviával kötött örökbarátsági szerződés között."
+            },
+            {
+                q: "Mikor ért véget Budapest ostroma a II. világháborúban?",
+                options: ["1945. február 13-án", "1944. december 24-én", "1945. április 4-én", "1945. május 8-án"],
+                correct: 0,
+                difficulty: "közepes",
+                category: "Magyar vonatkozás",
+                explanation: "A több mint 50 napig tartó véres ostrom során a város hídjait felrobbantották, és Budapest jelentős része romba dőlt."
+            },
+            {
+                q: "Melyik erdélyi területeket kapta vissza Magyarország az 1940. augusztus 30-i második bécsi döntéssel?",
+                options: ["Észak-Erdélyt és a Székelyföldet", "Dél-Erdélyt és a Bánságot", "Kárpátalját", "A Délvidéket"],
+                correct: 0,
+                difficulty: "közepes",
+                category: "Magyar vonatkozás",
+                explanation: "Német és olasz döntőbíráskodással mintegy 43 ezer négyzetkilométer tért vissza Magyarországhoz."
+            },
+            {
+                q: "Mi volt a „Tavaszi ébredés” hadművelet 1945 márciusában?",
+                options: [
+                    "Az utolsó nagy német páncélos offenzíva a Dunántúlon",
+                    "A szovjet támadás Debrecen ellen",
+                    "A magyar hadsereg átállása a szövetségesekhez",
+                    "A budai kitörés fedőneve"
+                ],
+                correct: 0,
+                difficulty: "nehéz",
+                category: "Magyar vonatkozás",
+                explanation: "A németek a zalai olajmezők védelmében indítottak támadást a Balaton térségében, de a sár és a szovjet védelem megállította őket."
+            },
+
+            // TECHNOLÓGIA, HADÁSZAT ÉS BEFEJEZÉS
+            {
+                q: "Melyik német rejtjelező gép kódját törték fel a brit matematikusok?",
+                options: ["Enigma", "Lorenz", "Kolosszus", "Bíbor"],
+                correct: 0,
+                difficulty: "könnyű",
+                category: "Haditechnika",
+                explanation: "Alan Turing és társai munkája révén a szövetséges kódfejtők olvasni tudták a német haditengerészet és légierő titkos üzeneteit."
+            },
+            {
+                q: "Mi volt a villámháborús katonai doktrína lényege?",
+                options: [
+                    "Páncélos ékek és légierő gyors, összehangolt áttörése",
+                    "Mélyen kiépített lövészárkok és tüzérségi felőrlés",
+                    "Kizárólag tengeri blokád alkalmazása",
+                    "Partizánháború az ellenség hátországában"
+                ],
+                correct: 0,
+                difficulty: "könnyű",
+                category: "Hadászat",
+                explanation: "A gyors mozgású harckocsik és a zuhanóbombázók együttműködése megbénította az ellenséges parancsnokságot."
+            },
+            {
+                q: "Melyik találmány adott döntő előnyt a brit királyi légierőnek az angliai csatában?",
+                options: ["A part menti radarlánc", "A sugárhajtású vadászgép", "Az éjjellátó készülék", "A ballisztikus rakéta"],
+                correct: 0,
+                difficulty: "könnyű",
+                category: "Haditechnika",
+                explanation: "A radar segítségével a britek időben észlelték a közeledő német bombázókat, így célzottan tudták irányítani vadászgépeiket."
+            },
+            {
+                q: "Mi volt a titkos amerikai „Manhattan-terv” célja?",
+                options: [
+                    "Az első atombomba kifejlesztése",
+                    "New York légvédelmének kiépítése",
+                    "A normandiai mesterséges kikötők tervezése",
+                    "A szupernehéz bombázók gyártása"
+                ],
+                correct: 0,
+                difficulty: "könnyű",
+                category: "Haditechnika",
+                explanation: "Robert Oppenheimer vezetésével fejlesztették ki az első nukleáris fegyvert."
+            },
+            {
+                q: "Melyik két japán városra dobtak le atombombát 1945 augusztusában?",
+                options: ["Hirosima és Nagaszaki", "Tokió és Kiotó", "Oszaka és Jokohama", "Okinava és Szapporo"],
+                correct: 0,
+                difficulty: "könnyű",
+                category: "A háború vége",
+                explanation: "Augusztus 6-án Hirosimára, augusztus 9-én Nagaszakira dobtak atombombát, ami gyorsította Japán kapitulációját."
+            },
+            {
+                q: "Melyik szovjet harckocsit tartják a II. világháború egyik leghatékonyabb konstrukciójának?",
+                options: ["T–34", "KV–1", "ISZ–2", "BT–7"],
+                correct: 0,
+                difficulty: "könnyű",
+                category: "Haditechnika",
+                explanation: "A döntött páncélzatú, széles lánctalpú T–34-es kiválóan bírta a keleti front sár- és hóviszonyait, és hatalmas számban gyártották."
+            },
+            {
+                q: "Mi volt a német V–2 megtorlófegyver?",
+                options: [
+                    "A világ első nagy hatótávolságú ballisztikus rakétája",
+                    "Egy lopakodó tengeralattjáró",
+                    "Nehéz légvédelmi ágyú",
+                    "Szárnyas robotrepülőgép"
+                ],
+                correct: 0,
+                difficulty: "közepes",
+                category: "Haditechnika",
+                explanation: "Wernher von Braun csapata fejlesztette ki; hangsebesség felett csapódott be, így nem lehetett lelőni."
+            },
+            {
+                q: "Melyik német vadászgép volt a világ első hadrendbe állított sugárhajtású vadászrepülőgépe?",
+                options: ["Messerschmitt Me 262", "Focke-Wulf Fw 190", "Junkers Ju 87 zuhanóbombázó", "Heinkel He 111"],
+                correct: 0,
+                difficulty: "nehéz",
+                category: "Haditechnika",
+                explanation: "A Me 262 sokkal gyorsabb volt a szövetséges légcsavaros gépeknél, de későn és kis számban vetették be."
+            },
+            {
+                q: "Mikor írta alá Németország a feltétel nélküli kapitulációt Európában?",
+                options: [
+                    "1945. május 8-án (moszkvai idő szerint május 9-én)",
+                    "1945. április 30-án",
+                    "1945. szeptember 2-án",
+                    "1945. június 6-án"
+                ],
+                correct: 0,
+                difficulty: "könnyű",
+                category: "A háború vége",
+                explanation: "Hitler öngyilkossága és Berlin eleste után Németország feltétel nélkül megadta magát; a II. világháború végleg 1945. szeptember 2-án, Japán kapitulációjával ért véget."
+            }
+        ];
+
+        // =====================================================================
+        // 3. JÁTÉK ÁLLAPOT ÉS KEZDŐKÉPERNYŐ VEZÉRLÉSE
+        // =====================================================================
+        let playerCount = 2;
+        let players = [];
+        let currentPlayerIdx = 0;
+        let roundNumber = 1;
+        let isRolling = false;
+        let isModalOpen = false;
+        let gameEnded = false;
+        let questionPool = [];
+        let diplomacyPool = [];
+
+        function shuffleArray(arr) {
+            for (let i = arr.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [arr[i], arr[j]] = [arr[j], arr[i]];
+            }
+            return arr;
+        }
+
+        // Játékosszám váltása a már beírt nevek megőrzésével
+        function setPlayerCount(count) {
+            playerCount = count;
+
+            const buttons = document.querySelectorAll('.count-btn');
+            buttons.forEach(btn => {
+                const btnCount = parseInt(btn.getAttribute('data-count'), 10);
+                if (btnCount === count) {
+                    btn.className = "count-btn py-2.5 rounded-xl font-bold text-sm border transition cursor-pointer bg-amber-500 text-slate-950 border-amber-400 shadow-lg";
+                } else {
+                    btn.className = "count-btn py-2.5 rounded-xl font-bold text-sm border transition cursor-pointer bg-slate-800 text-slate-300 border-slate-700 hover:bg-slate-700";
+                }
+            });
+
+            for (let i = 0; i < 4; i++) {
+                const row = document.getElementById('player-row-' + i);
+                if (row) {
+                    if (i < count) {
+                        row.classList.remove('hidden');
+                    } else {
+                        row.classList.add('hidden');
+                    }
+                }
+            }
+        }
+
+        // Játék elindítása a kezdőképernyőről
+        function startGame() {
+            initAudio();
+            players = [];
+
+            for (let i = 0; i < playerCount; i++) {
+                const inputEl = document.getElementById('player-name-' + i);
+                const rawName = inputEl ? inputEl.value.trim() : '';
+                const finalName = rawName.length > 0 ? rawName : `${i + 1}. Parancsnok`;
+                players.push({
+                    id: i,
+                    name: finalName,
+                    position: 0,
+                    score: 0,
+                    style: PLAYER_STYLES[i]
+                });
+            }
+
+            currentPlayerIdx = 0;
+            roundNumber = 1;
+            isRolling = false;
+            isModalOpen = false;
+            gameEnded = false;
+            questionPool = shuffleArray([...QUESTIONS_DB]);
+            diplomacyPool = shuffleArray([...DIPLOMACY_EVENTS]);
+
+            // Képernyők váltása
+            document.getElementById('setup-screen').classList.add('hidden');
+            document.getElementById('game-screen').classList.remove('hidden');
+            document.getElementById('round-indicator').classList.remove('hidden');
+            document.getElementById('restart-header-btn').classList.remove('hidden');
+
+            buildMapLandmarks();
+            drawDiceFace(4);
+            focusTileOnMap(0);
+            updateUI();
+            scrollTimelineTo(0);
+        }
+
+        function openRestartConfirm() {
+            document.getElementById('confirm-modal').classList.remove('hidden');
+        }
+
+        function closeRestartConfirm() {
+            document.getElementById('confirm-modal').classList.add('hidden');
+        }
+
+        function resetToSetup() {
+            document.getElementById('confirm-modal').classList.add('hidden');
+            document.getElementById('gameover-modal').classList.add('hidden');
+            document.getElementById('event-modal').classList.add('hidden');
+            document.getElementById('game-screen').classList.add('hidden');
+            document.getElementById('round-indicator').classList.add('hidden');
+            document.getElementById('restart-header-btn').classList.add('hidden');
+            document.getElementById('setup-screen').classList.remove('hidden');
+
+            isRolling = false;
+            isModalOpen = false;
+            gameEnded = false;
+        }
+
+        // =====================================================================
+        // 4. EURÓPA TÉRKÉP ÉS IDŐVONAL MEGJELENÍTÉS
+        // =====================================================================
+        function buildMapLandmarks() {
+            const landmarksGroup = document.getElementById('map-landmarks');
+            const routeLine = document.getElementById('map-route-line');
+            if (!landmarksGroup || !routeLine) return;
+
+            let pointsStr = '';
+            let circlesHtml = '';
+
+            BOARD_TILES.forEach((tile, idx) => {
+                pointsStr += `${tile.x},${tile.y} `;
+                let fill = '#64748b';
+                if (tile.type === 'battle') fill = '#ef4444';
+                else if (tile.type === 'diplomacy') fill = '#f59e0b';
+                else if (tile.type === 'disaster') fill = '#a855f7';
+                else if (tile.type === 'finish') fill = '#10b981';
+
+                circlesHtml += `<circle cx="${tile.x}" cy="${tile.y}" r="3.5" fill="${fill}" opacity="0.85" />`;
+            });
+
+            routeLine.setAttribute('points', pointsStr.trim());
+            landmarksGroup.innerHTML = circlesHtml;
+        }
+
+        function focusTileOnMap(tileIdx) {
+            const tile = BOARD_TILES[tileIdx] || BOARD_TILES[0];
+            const marker = document.getElementById('active-marker');
+            const label = document.getElementById('active-marker-label');
+            const titleEl = document.getElementById('map-event-title');
+            const descEl = document.getElementById('map-event-desc');
+            const badgeEl = document.getElementById('map-event-badge');
+
+            if (marker) marker.setAttribute('transform', `translate(${tile.x}, ${tile.y})`);
+            if (label) label.textContent = tile.title;
+            if (titleEl) titleEl.textContent = `${tile.year} – ${tile.title}`;
+            if (descEl) descEl.textContent = tile.desc;
+
+            if (badgeEl) {
+                const badgeMap = {
+                    start: { text: "Kiindulópont", cls: "bg-slate-800 text-slate-300 border-slate-700" },
+                    normal: { text: "Normál mező", cls: "bg-slate-800 text-slate-200 border-slate-600" },
+                    battle: { text: "⚔️ Csata mező", cls: "bg-red-950 text-red-300 border-red-700" },
+                    diplomacy: { text: "🕊️ Diplomácia", cls: "bg-amber-950 text-amber-300 border-amber-700" },
+                    disaster: { text: "⚠️ Katasztrófa", cls: "bg-purple-950 text-purple-300 border-purple-700" },
+                    finish: { text: "🏆 Célegyenes (1945)", cls: "bg-emerald-950 text-emerald-300 border-emerald-700" }
+                };
+                const info = badgeMap[tile.type] || badgeMap.normal;
+                badgeEl.textContent = info.text;
+                badgeEl.className = `px-2.5 py-1 rounded-lg text-xs font-bold border ${info.cls}`;
+            }
+        }
+
+        function renderTimeline() {
+            const container = document.getElementById('timeline-container');
+            if (!container) return;
+
+            const currentPos = players[currentPlayerIdx] ? players[currentPlayerIdx].position : 0;
+            let html = '';
+
+            BOARD_TILES.forEach((tile, idx) => {
+                const isCurrent = idx === currentPos;
+                let topBorder = 'border-slate-700';
+                let tagColor = 'bg-slate-700 text-slate-200';
+                let typeLabel = 'Normál';
+
+                if (tile.type === 'battle') {
+                    topBorder = 'border-red-600/80';
+                    tagColor = 'bg-red-600 text-white';
+                    typeLabel = 'Csata';
+                } else if (tile.type === 'diplomacy') {
+                    topBorder = 'border-amber-500/80';
+                    tagColor = 'bg-amber-500 text-slate-950';
+                    typeLabel = 'Diplomácia';
+                } else if (tile.type === 'disaster') {
+                    topBorder = 'border-purple-600/80';
+                    tagColor = 'bg-purple-700 text-white';
+                    typeLabel = 'Katasztrófa';
+                } else if (tile.type === 'start') {
+                    typeLabel = 'Rajt';
+                } else if (tile.type === 'finish') {
+                    topBorder = 'border-emerald-500';
+                    tagColor = 'bg-emerald-600 text-white';
+                    typeLabel = 'Cél (1945)';
+                }
+
+                // Bábuk ezen a mezőn
+                const pawnsHere = players.filter(p => p.position === idx);
+                let pawnsHtml = '';
+                pawnsHere.forEach(p => {
+                    pawnsHtml += `<span class="w-4 h-4 rounded-full ${p.style.bg} border-2 border-white shadow-md inline-block" title="${p.name}"></span>`;
+                });
+
+                html += `
+                    <div id="timeline-tile-${idx}" onclick="focusTileOnMap(${idx})"
+                        class="min-w-[132px] max-w-[132px] rounded-xl p-2.5 border-2 ${isCurrent ? 'border-amber-400 bg-slate-800/95 shadow-lg' : `${topBorder} bg-[#161f2e] hover:bg-slate-800/70`} flex flex-col justify-between cursor-pointer transition shrink-0">
+                        <div>
+                            <div class="flex items-center justify-between gap-1 mb-1">
+                                <span class="text-[11px] font-extrabold text-amber-400">${idx + 1}. ${tile.year}</span>
+                            </div>
+                            <div class="text-xs font-bold text-white leading-tight line-clamp-2 mb-1.5">${tile.title}</div>
+                        </div>
+                        <div>
+                            <div class="flex items-center gap-1 min-h-[18px] mb-1.5 flex-wrap">
+                                ${pawnsHtml}
+                            </div>
+                            <span class="inline-block px-1.5 py-0.5 rounded text-[10px] font-bold ${tagColor}">${typeLabel}</span>
+                        </div>
+                    </div>
+                `;
+            });
+
+            container.innerHTML = html;
+        }
+
+        function scrollTimelineTo(tileIdx) {
+            const tileEl = document.getElementById('timeline-tile-' + tileIdx);
+            if (tileEl && tileEl.scrollIntoView) {
+                tileEl.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+            }
+        }
+
+        function updateUI() {
+            if (!players.length) return;
+
+            document.getElementById('round-indicator').textContent = `${roundNumber}. Kör`;
+
+            const current = players[currentPlayerIdx];
+            document.getElementById('current-player-name').textContent = current.name;
+            document.getElementById('current-player-dot').className = `w-3.5 h-3.5 rounded-full inline-block border border-white ${current.style.bg}`;
+
+            const rollBtn = document.getElementById('roll-btn');
+            rollBtn.disabled = isRolling || isModalOpen || gameEnded;
+
+            // Eredményjelző frissítése
+            const scoreboard = document.getElementById('scoreboard-list');
+            const sortedForDisplay = [...players].sort((a, b) => b.score - a.score || b.position - a.position);
+            let sbHtml = '';
+
+            sortedForDisplay.forEach((p, rankIdx) => {
+                const isTurn = p.id === current.id;
+                const tile = BOARD_TILES[p.position];
+                sbHtml += `
+                    <div class="flex items-center justify-between p-2.5 rounded-xl border ${isTurn ? 'bg-slate-800/90 border-amber-400/70' : 'bg-slate-900/70 border-slate-800'}">
+                        <div class="flex items-center gap-2.5 min-w-0">
+                            <span class="text-xs font-extrabold text-slate-500 w-4">${rankIdx + 1}.</span>
+                            <span class="w-3.5 h-3.5 rounded-full ${p.style.bg} border border-white shrink-0"></span>
+                            <div class="truncate">
+                                <div class="text-sm font-bold text-white truncate">${p.name} ${isTurn ? '◀' : ''}</div>
+                                <div class="text-[11px] text-slate-400 truncate">${p.position + 1}/24 • ${tile.year} (${tile.title})</div>
+                            </div>
+                        </div>
+                        <div class="text-right pl-2 shrink-0">
+                            <span class="text-base font-extrabold text-amber-400">${p.score}</span>
+                            <span class="text-[10px] text-slate-400 block">pont</span>
+                        </div>
+                    </div>
+                `;
+            });
+
+            scoreboard.innerHTML = sbHtml;
+            renderTimeline();
+        }
+
+        // =====================================================================
+        // 5. NÉGYOLDALÚ DOBÓKOCKA (1–4) ÉS LÉPÉS ANIMÁCIÓ
+        // =====================================================================
+        function drawDiceFace(val) {
+            const svg = document.getElementById('dice-svg');
+            if (!svg) return;
+            const colors = {
+                1: { fill: "#f8fafc", stroke: "#d97706", text: "#0f172a" },
+                2: { fill: "#fef3c7", stroke: "#d97706", text: "#92400e" },
+                3: { fill: "#fde68a", stroke: "#b45309", text: "#78350f" },
+                4: { fill: "#f59e0b", stroke: "#fef3c7", text: "#0f172a" }
+            };
+            const theme = colors[val] || colors[1];
+            svg.innerHTML = `
+                <polygon points="50,8 93,85 7,85" fill="${theme.fill}" stroke="${theme.stroke}" stroke-width="4" stroke-linejoin="round"/>
+                <line x1="50" y1="8" x2="50" y2="34" stroke="${theme.stroke}" stroke-width="1.5" opacity="0.45"/>
+                <line x1="7" y1="85" x2="28" y2="72" stroke="${theme.stroke}" stroke-width="1.5" opacity="0.45"/>
+                <line x1="93" y1="85" x2="72" y2="72" stroke="${theme.stroke}" stroke-width="1.5" opacity="0.45"/>
+                <text x="50" y="70" text-anchor="middle" fill="${theme.text}" font-size="34" font-weight="900">${val}</text>
+            `;
+        }
+
+        function handleRollDice() {
+            if (isRolling || isModalOpen || gameEnded) return;
+            initAudio();
+            isRolling = true;
+            updateUI();
+
+            const diceBox = document.getElementById('dice-box');
+            const statusText = document.getElementById('turn-status-text');
+            diceBox.classList.add('dice-rolling');
+            statusText.textContent = "Kockadobás folyamatban...";
+
+            let ticks = 0;
+            const maxTicks = 12;
+            const rollInterval = setInterval(() => {
+                const tempVal = Math.floor(Math.random() * 4) + 1;
+                drawDiceFace(tempVal);
+                playSound('dice');
+                ticks++;
+
+                if (ticks >= maxTicks) {
+                    clearInterval(rollInterval);
+                    diceBox.classList.remove('dice-rolling');
+                    const finalRoll = Math.floor(Math.random() * 4) + 1;
+                    drawDiceFace(finalRoll);
+                    statusText.textContent = `Dobott érték: ${finalRoll} lépés!`;
+                    movePlayerStepByStep(finalRoll);
+                }
+            }, 65);
+        }
+
+        function movePlayerStepByStep(steps) {
+            const player = players[currentPlayerIdx];
+            const maxIdx = BOARD_TILES.length - 1;
+            let remaining = steps;
+
+            const stepTimer = setInterval(() => {
+                if (remaining > 0 && player.position < maxIdx) {
+                    player.position++;
+                    remaining--;
+                    playSound('step');
+                    focusTileOnMap(player.position);
+                    scrollTimelineTo(player.position);
+                    updateUI();
+                } else {
+                    clearInterval(stepTimer);
+                    isRolling = false;
+                    handleTileArrival(player);
+                }
+            }, 250);
+        }
+
+        // =====================================================================
+        // 6. MEZŐ ESEMÉNYEK KEZELÉSE (KÉRDÉS, CSATA, DIPLOMÁCIA, KATASZTRÓFA)
+        // =====================================================================
+        function handleTileArrival(player) {
+            const tile = BOARD_TILES[player.position];
+            focusTileOnMap(player.position);
+            scrollTimelineTo(player.position);
+
+            if (player.position >= BOARD_TILES.length - 1 || tile.type === "finish") {
+                player.score += 20;
+                updateUI();
+                endGame();
+                return;
+            }
+
+            isModalOpen = true;
+            updateUI();
+
+            const modal = document.getElementById('event-modal');
+            const qContent = document.getElementById('question-content');
+            const sContent = document.getElementById('special-event-content');
+            const footer = document.getElementById('modal-footer');
+
+            modal.classList.remove('hidden');
+            footer.classList.add('hidden');
+
+            if (tile.type === "diplomacy") {
+                qContent.classList.add('hidden');
+                sContent.classList.remove('hidden');
+                openDiplomacyEvent(tile);
+            } else if (tile.type === "disaster") {
+                qContent.classList.add('hidden');
+                sContent.classList.remove('hidden');
+                openDisasterEvent(tile);
+            } else {
+                sContent.classList.add('hidden');
+                qContent.classList.remove('hidden');
+                openQuestionCard(tile);
+            }
+        }
+
+        function openQuestionCard(tile) {
+            const isBattle = tile.type === "battle";
+            const headerBar = document.getElementById('modal-header-bar');
+            const iconEl = document.getElementById('modal-type-icon');
+            const catEl = document.getElementById('modal-category');
+            const titleEl = document.getElementById('modal-tile-title');
+            const ptsBadge = document.getElementById('modal-points-badge');
+
+            if (questionPool.length === 0) {
+                questionPool = shuffleArray([...QUESTIONS_DB]);
+            }
+
+            let qIndex = questionPool.findIndex(item => isBattle ? (item.difficulty !== "könnyű") : true);
+            if (qIndex === -1) qIndex = 0;
+            const questionObj = questionPool.splice(qIndex, 1)[0];
+
+            const rewardPoints = isBattle ? 25 : (questionObj.difficulty === "közepes" ? 15 : 10);
+
+            headerBar.className = isBattle
+                ? "px-6 py-4 bg-gradient-to-r from-red-950 to-slate-900 border-b border-red-800 flex items-center justify-between gap-2"
+                : "px-6 py-4 bg-slate-800 border-b border-slate-700 flex items-center justify-between gap-2";
+
+            iconEl.textContent = isBattle ? "⚔️" : "📜";
+            catEl.textContent = `${isBattle ? "CSATA MEZŐ" : "TÖRTÉNELMI KÉRDÉS"} • ${questionObj.category} (${questionObj.difficulty})`;
+            titleEl.textContent = `${tile.year} – ${tile.title}`;
+            ptsBadge.textContent = isBattle ? `+${rewardPoints} Pont & +1 Lépés` : `+${rewardPoints} Pont`;
+
+            document.getElementById('question-text').textContent = questionObj.q;
+
+            const indexedOptions = questionObj.options.map((text, idx) => ({
+                text,
+                isCorrect: idx === questionObj.correct
+            }));
+            shuffleArray(indexedOptions);
+
+            const optContainer = document.getElementById('options-container');
+            const letters = ["A", "B", "C", "D"];
+            let optHtml = '';
+
+            indexedOptions.forEach((opt, i) => {
+                optHtml += `
+                    <button type="button" onclick="submitAnswer(this, ${opt.isCorrect}, ${rewardPoints}, ${isBattle})"
+                        data-correct="${opt.isCorrect}"
+                        class="answer-btn w-full text-left p-3.5 sm:p-4 rounded-xl bg-slate-800/90 hover:bg-slate-700 border border-slate-700 hover:border-amber-400 text-slate-100 font-medium text-sm sm:text-base flex items-center gap-3 transition cursor-pointer">
+                        <span class="w-7 h-7 rounded-lg bg-slate-900 border border-slate-600 flex items-center justify-center text-xs font-extrabold text-amber-400 shrink-0">
+                            ${letters[i]}
+                        </span>
+                        <span>${opt.text}</span>
+                    </button>
+                `;
+            });
+
+            optContainer.innerHTML = optHtml;
+            optContainer.dataset.explanation = questionObj.explanation;
+
+            document.getElementById('feedback-box').classList.add('hidden');
+        }
+
+        function submitAnswer(clickedBtn, isCorrect, rewardPoints, isBattle) {
+            const optContainer = document.getElementById('options-container');
+            const buttons = optContainer.querySelectorAll('.answer-btn');
+            const explanation = optContainer.dataset.explanation;
+            const player = players[currentPlayerIdx];
+
+            buttons.forEach(btn => {
+                btn.disabled = true;
+                btn.classList.remove('hover:bg-slate-700', 'hover:border-amber-400', 'cursor-pointer');
+                const btnCorrect = btn.dataset.correct === "true";
+
+                if (btnCorrect) {
+                    btn.className = "answer-btn w-full text-left p-3.5 sm:p-4 rounded-xl bg-emerald-950/90 border-2 border-emerald-500 text-emerald-100 font-bold text-sm sm:text-base flex items-center gap-3";
+                } else if (btn === clickedBtn && !isCorrect) {
+                    btn.className = "answer-btn w-full text-left p-3.5 sm:p-4 rounded-xl bg-red-950/90 border-2 border-red-500 text-red-200 font-semibold text-sm sm:text-base flex items-center gap-3";
+                } else {
+                    btn.className = "answer-btn w-full text-left p-3.5 sm:p-4 rounded-xl bg-slate-900/50 border border-slate-800 text-slate-500 text-sm sm:text-base flex items-center gap-3";
+                }
+            });
+
+            const fbBox = document.getElementById('feedback-box');
+            const fbTitle = document.getElementById('feedback-title');
+            const fbExp = document.getElementById('feedback-explanation');
+
+            fbBox.classList.remove('hidden');
+            fbExp.textContent = explanation;
+
+            if (isCorrect) {
+                playSound('correct');
+                player.score += rewardPoints;
+                let bonusMsg = `+${rewardPoints} pontot szereztél!`;
+
+                if (isBattle && player.position < BOARD_TILES.length - 1) {
+                    player.position = Math.min(BOARD_TILES.length - 1, player.position + 1);
+                    bonusMsg += " Bónusz: +1 lépést előrehaladtál!";
+                    focusTileOnMap(player.position);
+                    scrollTimelineTo(player.position);
+                }
+
+                fbBox.className = "mt-5 p-4 rounded-xl border bg-emerald-950/40 border-emerald-600/70";
+                fbTitle.className = "font-extrabold text-base mb-1 text-emerald-400";
+                fbTitle.textContent = `✅ Helyes válasz! ${bonusMsg}`;
+            } else {
+                playSound('wrong');
+                const penalty = isBattle ? 10 : 5;
+                player.score = Math.max(0, player.score - penalty);
+
+                fbBox.className = "mt-5 p-4 rounded-xl border bg-red-950/40 border-red-600/70";
+                fbTitle.className = "font-extrabold text-base mb-1 text-red-400";
+                fbTitle.textContent = `❌ Helytelen válasz! (-${penalty} pont)`;
+            }
+
+            updateUI();
+
+            if (player.position >= BOARD_TILES.length - 1) {
+                setTimeout(() => {
+                    document.getElementById('event-modal').classList.add('hidden');
+                    isModalOpen = false;
+                    endGame();
+                }, 1400);
+                return;
+            }
+
+            document.getElementById('modal-footer').classList.remove('hidden');
+        }
+
+        function openDiplomacyEvent(tile) {
+            playSound('event');
+            if (diplomacyPool.length === 0) {
+                diplomacyPool = shuffleArray([...DIPLOMACY_EVENTS]);
+            }
+            const ev = diplomacyPool.pop();
+
+            document.getElementById('modal-header-bar').className = "px-6 py-4 bg-gradient-to-r from-amber-950 to-slate-900 border-b border-amber-700 flex items-center justify-between gap-2";
+            document.getElementById('modal-type-icon').textContent = "🕊️";
+            document.getElementById('modal-category').textContent = "DIPLOMÁCIAI MEZŐ • STRATÉGIAI DÖNTÉS";
+            document.getElementById('modal-tile-title').textContent = `${tile.year} – ${tile.title}`;
+            document.getElementById('modal-points-badge').textContent = "Válassz opciót";
+
+            document.getElementById('special-title').textContent = ev.title;
+            document.getElementById('special-desc').textContent = ev.desc;
+            document.getElementById('special-result-box').classList.add('hidden');
+
+            const choicesDiv = document.getElementById('diplomacy-choices');
+            choicesDiv.classList.remove('hidden');
+            choicesDiv.innerHTML = '';
+
+            const btnA = document.createElement('button');
+            btnA.type = 'button';
+            btnA.className = "p-4 rounded-xl bg-slate-800 hover:bg-slate-700 border border-amber-500/50 hover:border-amber-400 text-left transition cursor-pointer";
+            btnA.innerHTML = `
+                <div class="text-xs font-bold uppercase text-amber-400 mb-1">1. Lehetőség (Biztos)</div>
+                <div class="text-base font-extrabold text-white mb-1">${ev.optA.title}</div>
+                <div class="text-xs text-slate-300">${ev.optA.desc}</div>
+            `;
+            btnA.onclick = () => resolveDiplomacy(ev.optA);
+
+            const btnB = document.createElement('button');
+            btnB.type = 'button';
+            btnB.className = "p-4 rounded-xl bg-slate-800 hover:bg-slate-700 border border-red-500/50 hover:border-red-400 text-left transition cursor-pointer";
+            btnB.innerHTML = `
+                <div class="text-xs font-bold uppercase text-red-400 mb-1">2. Lehetőség (Kockázatos)</div>
+                <div class="text-base font-extrabold text-white mb-1">${ev.optB.title}</div>
+                <div class="text-xs text-slate-300">${ev.optB.desc}</div>
+            `;
+            btnB.onclick = () => resolveDiplomacy(ev.optB);
+
+            choicesDiv.appendChild(btnA);
+            choicesDiv.appendChild(btnB);
+        }
+
+        function resolveDiplomacy(opt) {
+            const player = players[currentPlayerIdx];
+            const resBox = document.getElementById('special-result-box');
+            document.getElementById('diplomacy-choices').classList.add('hidden');
+            resBox.classList.remove('hidden');
+
+            let msg = "";
+            if (opt.type === "points") {
+                player.score += opt.val;
+                msg = `✅ Sikeres diplomácia! +${opt.val} pontot szereztél.`;
+                playSound('correct');
+            } else if (opt.type === "both") {
+                player.score += opt.pts;
+                player.position = Math.min(BOARD_TILES.length - 1, player.position + opt.step);
+                msg = `✅ Utánpótlás megérkezett! +${opt.pts} pont és +${opt.step} lépés!`;
+                playSound('correct');
+            } else if (opt.type === "gamble" || opt.type === "gambleStep") {
+                const success = Math.random() < 0.5;
+                if (success) {
+                    player.score += opt.winPts;
+                    if (opt.winStep) {
+                        player.position = Math.min(BOARD_TILES.length - 1, player.position + opt.winStep);
+                    }
+                    msg = `🎉 A merész terv sikerült! +${opt.winPts} pont${opt.winStep ? ` és +${opt.winStep} lépés` : ''}!`;
+                    playSound('correct');
+                } else {
+                    if (opt.losePts) {
+                        player.score = Math.max(0, player.score + opt.losePts);
+                        msg = `💥 Az akció kudarcba fulladt! ${opt.losePts} pont levonás.`;
+                    } else if (opt.loseStep) {
+                        player.position = Math.max(0, player.position + opt.loseStep);
+                        msg = `💥 Visszavonulásra kényszerültél! ${opt.loseStep} lépés.`;
+                    }
+                    playSound('wrong');
+                }
+            }
+
+            resBox.textContent = msg;
+            focusTileOnMap(player.position);
+            scrollTimelineTo(player.position);
+            updateUI();
+
+            if (player.position >= BOARD_TILES.length - 1) {
+                setTimeout(() => {
+                    document.getElementById('event-modal').classList.add('hidden');
+                    isModalOpen = false;
+                    endGame();
+                }, 1400);
+                return;
+            }
+
+            document.getElementById('modal-footer').classList.remove('hidden');
+        }
+
+        function openDisasterEvent(tile) {
+            playSound('wrong');
+            const player = players[currentPlayerIdx];
+
+            document.getElementById('modal-header-bar').className = "px-6 py-4 bg-gradient-to-r from-purple-950 to-slate-900 border-b border-purple-700 flex items-center justify-between gap-2";
+            document.getElementById('modal-type-icon').textContent = "⚠️";
+            document.getElementById('modal-category').textContent = "KATASZTRÓFA MEZŐ • SÚLYOS CSAPÁS";
+            document.getElementById('modal-tile-title').textContent = `${tile.year} – ${tile.title}`;
+            document.getElementById('modal-points-badge').textContent = "Negatív esemény";
+
+            document.getElementById('special-title').textContent = `${tile.title} – Történelmi tragédia`;
+            document.getElementById('special-desc').textContent = tile.desc;
+            document.getElementById('diplomacy-choices').classList.add('hidden');
+
+            let effectMsg = "";
+            if (tile.title === "Dunkerque") {
+                player.score = Math.max(0, player.score - 10);
+                effectMsg = "Veszteség: -10 pont.";
+            } else if (tile.title === "Moszkva tele") {
+                player.score = Math.max(0, player.score - 5);
+                player.position = Math.max(0, player.position - 1);
+                effectMsg = "Veszteség: -5 pont és -1 lépés visszacsúszás.";
+            } else if (tile.title === "Don-kanyar") {
+                player.score = Math.max(0, player.score - 15);
+                effectMsg = "Veszteség: -15 pont.";
+            } else {
+                player.position = Math.max(0, player.position - 1);
+                effectMsg = "Veszteség: -1 lépés visszacsúszás.";
+            }
+
+            const resBox = document.getElementById('special-result-box');
+            resBox.classList.remove('hidden');
+            resBox.textContent = `⚠️ ${effectMsg}`;
+
+            focusTileOnMap(player.position);
+            scrollTimelineTo(player.position);
+            updateUI();
+
+            document.getElementById('modal-footer').classList.remove('hidden');
+        }
+
+        function finishTurn() {
+            document.getElementById('event-modal').classList.add('hidden');
+            isModalOpen = false;
+
+            currentPlayerIdx = (currentPlayerIdx + 1) % players.length;
+            if (currentPlayerIdx === 0) {
+                roundNumber++;
+            }
+
+            const nextPlayer = players[currentPlayerIdx];
+            document.getElementById('turn-status-text').textContent = `${nextPlayer.name} következik – kattints a „Dobás” gombra!`;
+            focusTileOnMap(nextPlayer.position);
+            scrollTimelineTo(nextPlayer.position);
+            updateUI();
+        }
+
+        // =====================================================================
+        // 7. JÁTÉK VÉGE ÉS RANGLISTA
+        // =====================================================================
+        function endGame() {
+            gameEnded = true;
+            playSound('win');
+
+            const sorted = [...players].sort((a, b) => b.score - a.score || b.position - a.position);
+            const winner = sorted[0];
+
+            document.getElementById('winner-announcement').innerHTML =
+                `A történelmi küzdelem győztese: <span class="text-amber-400 font-extrabold">${winner.name}</span> (${winner.score} pont)!`;
+
+            const rankingsDiv = document.getElementById('final-rankings');
+            const medals = ["🥇", "🥈", "🥉", "🎖️"];
+            let html = '';
+
+            sorted.forEach((p, idx) => {
+                html += `
+                    <div class="flex items-center justify-between p-3.5 rounded-xl border ${idx === 0 ? 'bg-amber-500/15 border-amber-400' : 'bg-slate-900 border-slate-800'}">
+                        <div class="flex items-center gap-3">
+                            <span class="text-xl">${medals[idx] || "•"}</span>
+                            <span class="w-4 h-4 rounded-full ${p.style.bg} border border-white"></span>
+                            <div>
+                                <div class="font-extrabold text-white text-base">${p.name}</div>
+                                <div class="text-xs text-slate-400">Elért mező: ${BOARD_TILES[p.position].year} – ${BOARD_TILES[p.position].title}</div>
+                            </div>
+                        </div>
+                        <div class="text-right">
+                            <span class="text-xl font-extrabold text-amber-400">${p.score}</span>
+                            <span class="text-xs text-slate-400 block">pont</span>
+                        </div>
+                    </div>
+                `;
+            });
+
+            rankingsDiv.innerHTML = html;
+            document.getElementById('gameover-modal').classList.remove('hidden');
+        }
+
+        // Kezdőállapot inicializálása
+        window.addEventListener('DOMContentLoaded', function () {
+            setPlayerCount(2);
+            drawDiceFace(4);
+        });
+    </script>
+</body>
+</html>
